@@ -402,7 +402,8 @@ function getReportUrl(url) {
 
     }, (error, response, body) => {
       if (error) return reject(error);
-      console.debug(body.args);
+      console.debug(body);
+      console.debug(url);
       if (body.args) {
         if (body.args.urls && body.args.urls[5])
           resolve(body.args.urls[5]);
