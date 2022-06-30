@@ -437,6 +437,7 @@ function getReportUrl(url) {
 
 function downloadReport(url) {
   return new Promise((resolve, reject) => {
+    console.debug('hey wayne and chuck');
     return request({
       method: "GET",
       uri: `${url}?session=${session.authToken}`,
