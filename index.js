@@ -406,6 +406,7 @@ function _actuallyGetReportUrl(url, resolve, reject) {
 }
 
 function _extractReportUrl(body) {
+  console.log('hey you guys');
   if (body.args) {
     if (body.args.urls && body.args.urls[5]) {
       return body.args.urls[5]
@@ -429,7 +430,7 @@ function getReportUrl(url) {
     var p = Promise.reject();
     
     for(var i=0; i<max; i++) {
-        p = p.catch(_actuallyGetReportUrl(url)).then(_extractReportUrl).catch(rejectDelay);
+        p = p.catch(_actuallyGetReportUrl(url)).then(body => { return _extractReportUrl(body) }).catch(rejectDelay);
     }
     return p
   });
