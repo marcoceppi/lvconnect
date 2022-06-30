@@ -388,34 +388,38 @@ function getChannels(url) {
   });
 }
 
+function _actuallyGetReportUrl(url, resolve, reject) {
+  var intervalId = setInterval(request({
+    method: "GET",
+    uri: url,
+    headers: {
+      "User-Agent": agent,
+      "Accept": "application/json"
+    },
+    json: true,
+    rejectUnauthorized: true
+  }, (error, response, body) => {
+    if (error) return reject(error);
+    console.debug(body);
+    console.debug(url);
+    if (body.args) {
+      if (body.args.urls && body.args.urls[5]) {
+        clearInterval(intervalId);
+        resolve(body.args.urls[5]);
+      } else {
+        console.debug("getReportUrl: No report URL provided. Trying again");
+      }
+    } else {// no sensible data has been returned
+      clearInterval(intervalId);
+      reject("getReportUrl: Unknown response, check connection parameters.");
+    }
+  }), 1000);
+}
+
+
 function getReportUrl(url) {
   return new Promise((resolve, reject) => {
-    return request({
-      method: "GET",
-      uri: url,
-      headers: {
-        "User-Agent": agent,
-        "Accept": "application/json"
-      },
-      json: true,
-      rejectUnauthorized: true
-
-    }, (error, response, body) => {
-      if (error) return reject(error);
-      console.debug(body);
-      console.debug(url);
-      if (body.args) {
-        if (body.args.urls && body.args.urls[5])
-          resolve(body.args.urls[5]);
-
-        else
-          reject("getReportUrl: No report URL provided.");
-
-      } else {// no sensible data has been returned
-        reject("getReportUrl: Unknown response, check connection parameters.");
-
-      }
-    });
+    return _actuallyGetReportUrl(url, resolve, reject)
   });
 }
 
