@@ -412,10 +412,15 @@ function getReportUrlWith1000PercentMoreRetries(url) {
       rejectUnauthorized: true
 
     }, (error, response, body) => {
-      if (error) reject(error);
+      if (error) {
+        console.debug(error);
+        reject(error);
+      }
 
       if (body.args) {
+        console.debug(body);
         if (body.args.urls && body.args.urls[5]) {
+          console.debug("we got the body URL");
           resolve(body.args.urls[5]);
         } else {
           console.debug("getReportUrl: No report URL provided.");
