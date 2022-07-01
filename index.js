@@ -486,10 +486,11 @@ function downloadReport(url) {
 
       }, (error, response, body) => {
         if (error) return reject(error);
-        console.debug(body);
         if (body) {
+          console.debug("have the body");
           const found = body.match(/DataForLibreDailyLog\s*=\s*({.*})/);
           if (found && found.length > 1) {
+            console.debug("found it");
             try { resolve(JSON.parse(found[1]).Data); }
             catch (err) { reject(err); }
 
