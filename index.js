@@ -417,11 +417,10 @@ function getReportUrlWith1000PercentMoreRetries(url) {
       if (body.args) {
         if (body.args.urls && body.args.urls[5]) {
           resolve(body.args.urls[5]);
-
-        } else
+        } else {
           console.debug("getReportUrl: No report URL provided.");
-        reject("getReportUrl: No report URL provided.");
-
+          reject("getReportUrl: No report URL provided.");
+        }
       } else {// no sensible data has been returned
         console.debug("getReportUrl: Unknown response, check connection parameters.");
         reject("getReportUrl: Unknown response, check connection parameters.");
@@ -432,7 +431,10 @@ function getReportUrlWith1000PercentMoreRetries(url) {
   return promiseRetry(
     { minTimeout: 500, retries: 5, factor: 1.5 },
     (retry, n) => {
-      return p.catch(retry);
+      return p.catch((err) => {
+        console.log('retrying promise');
+        retry();
+      });
     }
   );
 }
