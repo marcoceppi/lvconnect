@@ -399,40 +399,43 @@ function getChannels(url) {
 //   }
 // );
 
-// function getReportUrl(url) {
-//   return new Promise((resolve, reject) => {
-//     return promiseRetry(
-//       { minTimeout: 500, retries: 5, factor: 1.5 },
-//       (retry, n) => {
-//         return request({
-//           method: "GET",
-//           uri: url,
-//           headers: {
-//             "User-Agent": agent,
-//             "Accept": "application/json"
-//           },
-//           json: true,
-//           rejectUnauthorized: true
+function getReportUrlWith1000PercentMoreRetries(url) {
+  var p = new Promise((resolve, reject) => {
+    return request({
+      method: "GET",
+      uri: url,
+      headers: {
+        "User-Agent": agent,
+        "Accept": "application/json"
+      },
+      json: true,
+      rejectUnauthorized: true
 
-//         }, (error, response, body) => {
-//           if (error) return retry(error);
+    }, (error, response, body) => {
+      if (error) reject(error);
 
-//           if (body.args) {
-//             if (body.args.urls && body.args.urls[5]) {
-//               resolve(body.args.urls[5]);
+      if (body.args) {
+        if (body.args.urls && body.args.urls[5]) {
+          resolve(body.args.urls[5]);
 
-//             } else
-//               console.debug("getReportUrl: No report URL provided.");
-//             retry("getReportUrl: No report URL provided.");
+        } else
+          console.debug("getReportUrl: No report URL provided.");
+        reject("getReportUrl: No report URL provided.");
 
-//           } else {// no sensible data has been returned
-//             console.debug("getReportUrl: Unknown response, check connection parameters.");
-//             retry("getReportUrl: Unknown response, check connection parameters.");
-//           }
-//         });
-//       });
-//   });
-// }
+      } else {// no sensible data has been returned
+        console.debug("getReportUrl: Unknown response, check connection parameters.");
+        reject("getReportUrl: Unknown response, check connection parameters.");
+      }
+    });
+  });
+
+  return promiseRetry(
+    { minTimeout: 500, retries: 5, factor: 1.5 },
+    (retry, n) => {
+      return p.catch(retry);
+    }
+  );
+}
 
 function getReportUrl(url) {
   return new Promise((resolve, reject) => {
@@ -511,7 +514,7 @@ function fetch() {
   return getDataSources()
     .then(() => { return generateReports(); })
     .then(url => { return getChannels(url); })
-    .then(url => { return getReportUrl(url); })
+    .then(url => { return getReportUrlWith1000PercentMoreRetries(url); })
     .then(url => { return downloadReport(url); })
 }
 
