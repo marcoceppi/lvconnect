@@ -489,7 +489,7 @@ function downloadReport(url) {
         console.debug(`${url}?session=${session.authToken}`);
         if (body) {
           console.debug("have the body");
-          const found = body.match(/DataForLibreDailyLog\s*=\s*({.*})/);
+          const found = body.match(/window.Report\s*=\s*({.*})/);
           if (found && found.length > 1) {
             console.debug("found it");
             try { resolve(JSON.parse(found[1]).Data); }
