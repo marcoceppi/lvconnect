@@ -413,22 +413,16 @@ function getReportUrlWith1000PercentMoreRetries(url) {
         rejectUnauthorized: true
 
       }, (error, response, body) => {
-        if (error) {
-          console.debug(error);
-          reject(error);
-        }
+        if (error) reject(error);
 
         if (body.args) {
           console.debug(body);
           if (body.args.urls && body.args.urls[5]) {
-            console.debug("we got the body URL");
             resolve(body.args.urls[5]);
           } else {
-            console.debug("getReportUrl: No report URL provided.");
             reject("getReportUrl: No report URL provided.");
           }
         } else {// no sensible data has been returned
-          console.debug("getReportUrl: Unknown response, check connection parameters.");
           reject("getReportUrl: Unknown response, check connection parameters.");
         }
       });
@@ -438,10 +432,7 @@ function getReportUrlWith1000PercentMoreRetries(url) {
   return promiseRetry(
     { minTimeout: 500, retries: 5, factor: 1.5 },
     (retry, n) => {
-      return p().catch((err) => {
-        console.log('retrying promise');
-        retry();
-      });
+      return p().catch(retry);
     }
   );
 }
@@ -469,12 +460,10 @@ function getReportUrl(url) {
               resolve(body.args.urls[5]);
 
             } else {
-              console.debug("getReportUrl: No report URL provided.");
               retry("getReportUrl: No report URL provided.");
             }
 
           } else {// no sensible data has been returned
-            console.debug("getReportUrl: Unknown response, check connection parameters.");
             retry("getReportUrl: Unknown response, check connection parameters.");
           }
         });
@@ -483,37 +472,48 @@ function getReportUrl(url) {
 }
 
 function downloadReport(url) {
-  return new Promise((resolve, reject) => {
-    console.debug('hey wayne and chuck');
-    return request({
-      method: "GET",
-      uri: `${url}?session=${session.authToken}`,
-      headers: {
-        "User-Agent": agent,
-        "Accept": "text/html"
-      },
-      rejectUnauthorized: true
+  var p = () => {
+    return new Promise((resolve, reject) => {
+      console.debug('hey wayne and chuck');
+      return request({
+        method: "GET",
+        uri: `${url}?session=${session.authToken}`,
+        headers: {
+          "User-Agent": agent,
+          "Accept": "text/html"
+        },
+        rejectUnauthorized: true
 
-    }, (error, response, body) => {
-      if (error) return reject(error);
+      }, (error, response, body) => {
+        if (error) return reject(error);
+        console.debug(body);
+        if (body) {
+          const found = body.match(/DataForLibreDailyLog\s*=\s*({.*})/);
+          if (found && found.length > 1) {
+            try { resolve(JSON.parse(found[1]).Data); }
+            catch (err) { reject(err); }
 
-      if (body) {
-        const found = body.match(/DataForLibreDailyLog\s*=\s*({.*})/);
-        if (found && found.length > 1) {
-          try { resolve(JSON.parse(found[1]).Data); }
-          catch (err) { reject(err); }
-
-        } else {
-          reject('downloadReport: No data received.');
+          } else {
+            reject('downloadReport: No data received.');
+          }
+        } else { // no sensible data has been returned
+          console.debug(response);
+          reject("downloadReport: Unknown response, check connection parameters.");
         }
-
-      } else { // no sensible data has been returned
-        console.debug(response);
-        reject("downloadReport: Unknown response, check connection parameters.");
-
-      }
+      });
     });
-  });
+  }
+
+  return promiseRetry(
+    { minTimeout: 500, retries: 5, factor: 1.5 },
+    (retry, n) => {
+      return p().catch((err) => {
+        console.log('retrying promise downloadReport');
+        console.log(err);
+        retry();
+      });
+    }
+  );
 }
 
 /**
