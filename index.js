@@ -388,18 +388,7 @@ function getChannels(url) {
   });
 }
 
-// return promiseRetry(
-//   { minTimeout: 3000, retries: params.maxFailures - 1, factor: 1.5 },
-//   (retry, n) => {
-//     console.debug(
-//       `lvconnect: attempt to login, fetch and upload data # ${n}`
-//     );
-//     return authorize(params)
-//       .catch(retry);
-//   }
-// );
-
-function getReportUrlWith1000PercentMoreRetries(url) {
+function getReportUrl(url) {
   var p = () => {
     return new Promise((resolve, reject) => {
       return request({
@@ -416,7 +405,6 @@ function getReportUrlWith1000PercentMoreRetries(url) {
         if (error) reject(error);
 
         if (body.args) {
-          console.debug(body);
           if (body.args.urls && body.args.urls[5]) {
             resolve(body.args.urls[5]);
           } else {
@@ -432,49 +420,17 @@ function getReportUrlWith1000PercentMoreRetries(url) {
   return promiseRetry(
     { minTimeout: 500, retries: 5, factor: 1.5 },
     (retry, n) => {
-      return p().catch(retry);
+      return p().catch((err) => {
+        console.debug('retrying promise getReportUrl', err);
+        retry(err);
+      });
     }
   );
-}
-
-function getReportUrl(url) {
-  return new Promise((resolve, reject) => {
-    return promiseRetry(
-      { minTimeout: 500, retries: 5, factor: 1.5 },
-      (retry, n) => {
-        return request({
-          method: "GET",
-          uri: url,
-          headers: {
-            "User-Agent": agent,
-            "Accept": "application/json"
-          },
-          json: true,
-          rejectUnauthorized: true
-
-        }, (error, response, body) => {
-          if (error) return retry(error);
-
-          if (body.args) {
-            if (body.args.urls && body.args.urls[5]) {
-              resolve(body.args.urls[5]);
-
-            } else {
-              retry("getReportUrl: No report URL provided.");
-            }
-
-          } else {// no sensible data has been returned
-            retry("getReportUrl: Unknown response, check connection parameters.");
-          }
-        });
-      });
-  });
 }
 
 function downloadReport(url) {
   var p = () => {
     return new Promise((resolve, reject) => {
-      console.debug('hey wayne and chuck');
       return request({
         method: "GET",
         uri: `${url}?session=${session.authToken}`,
@@ -486,12 +442,9 @@ function downloadReport(url) {
 
       }, (error, response, body) => {
         if (error) return reject(error);
-        console.debug(`${url}?session=${session.authToken}`);
         if (body) {
-          console.debug("have the body");
           const found = body.match(/window.Report\s*=\s*({.*})/);
           if (found && found.length > 1) {
-            console.debug("found it");
             try { resolve(JSON.parse(found[1]).Data); }
             catch (err) { reject(err); }
 
@@ -499,7 +452,6 @@ function downloadReport(url) {
             reject('downloadReport: No data received.');
           }
         } else { // no sensible data has been returned
-          console.debug(response);
           reject("downloadReport: Unknown response, check connection parameters.");
         }
       });
@@ -510,9 +462,8 @@ function downloadReport(url) {
     { minTimeout: 500, retries: 5, factor: 1.5 },
     (retry, n) => {
       return p().catch((err) => {
-        console.log('retrying promise downloadReport');
-        console.log(err);
-        retry();
+        console.debug('retrying promise downloadReport', err);
+        retry(err);
       });
     }
   );
@@ -525,7 +476,7 @@ function fetch() {
   return getDataSources()
     .then(() => { return generateReports(); })
     .then(url => { return getChannels(url); })
-    .then(url => { return getReportUrlWith1000PercentMoreRetries(url); })
+    .then(url => { return getReportUrl(url); })
     .then(url => { return downloadReport(url); })
 }
 
