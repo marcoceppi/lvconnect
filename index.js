@@ -388,51 +388,85 @@ function getChannels(url) {
   });
 }
 
-function _actuallyGetReportUrl(url, resolve, reject) {
-  request({
-    method: "GET",
-    uri: url,
-    headers: {
-      "User-Agent": agent,
-      "Accept": "application/json"
-    },
-    json: true,
-    rejectUnauthorized: true
-  }, (error, response, body) => {
-    if (error) throw error;
-    console.debug(body);
-    return body
-  });
-}
+// return promiseRetry(
+//   { minTimeout: 3000, retries: params.maxFailures - 1, factor: 1.5 },
+//   (retry, n) => {
+//     console.debug(
+//       `lvconnect: attempt to login, fetch and upload data # ${n}`
+//     );
+//     return authorize(params)
+//       .catch(retry);
+//   }
+// );
 
-function _extractReportUrl(body) {
-  console.log('hey you guys');
-  if (body.args) {
-    if (body.args.urls && body.args.urls[5]) {
-      return body.args.urls[5]
-    } else {
-      throw "getReportUrl: No report URL provided.";
-    }
-  } else {// no sensible data has been returned
-    throw "getReportUrl: Unknown response, check connection parameters.";
-  }
-}
+// function getReportUrl(url) {
+//   return new Promise((resolve, reject) => {
+//     return promiseRetry(
+//       { minTimeout: 500, retries: 5, factor: 1.5 },
+//       (retry, n) => {
+//         return request({
+//           method: "GET",
+//           uri: url,
+//           headers: {
+//             "User-Agent": agent,
+//             "Accept": "application/json"
+//           },
+//           json: true,
+//           rejectUnauthorized: true
 
-function rejectDelay(reason) {
-    return new Promise(function(resolve, reject) {
-        setTimeout(reject.bind(null, reason), 1000); 
-    });
-}
+//         }, (error, response, body) => {
+//           if (error) return retry(error);
+
+//           if (body.args) {
+//             if (body.args.urls && body.args.urls[5]) {
+//               resolve(body.args.urls[5]);
+
+//             } else
+//               console.debug("getReportUrl: No report URL provided.");
+//             retry("getReportUrl: No report URL provided.");
+
+//           } else {// no sensible data has been returned
+//             console.debug("getReportUrl: Unknown response, check connection parameters.");
+//             retry("getReportUrl: Unknown response, check connection parameters.");
+//           }
+//         });
+//       });
+//   });
+// }
 
 function getReportUrl(url) {
   return new Promise((resolve, reject) => {
-    var max = 5;
-    var p = Promise.reject();
-    
-    for(var i=0; i<max; i++) {
-        p = p.catch(_actuallyGetReportUrl(url)).then(body => { return _extractReportUrl(body) }).catch(rejectDelay);
-    }
-    return p
+    return promiseRetry(
+      { minTimeout: 500, retries: 5, factor: 1.5 },
+      (retry, n) => {
+        return request({
+          method: "GET",
+          uri: url,
+          headers: {
+            "User-Agent": agent,
+            "Accept": "application/json"
+          },
+          json: true,
+          rejectUnauthorized: true
+
+        }, (error, response, body) => {
+          if (error) return retry(error);
+
+          if (body.args) {
+            if (body.args.urls && body.args.urls[5]) {
+              resolve(body.args.urls[5]);
+
+            } else {
+              console.debug("getReportUrl: No report URL provided.");
+              retry("getReportUrl: No report URL provided.");
+            }
+
+          } else {// no sensible data has been returned
+            console.debug("getReportUrl: Unknown response, check connection parameters.");
+            retry("getReportUrl: Unknown response, check connection parameters.");
+          }
+        });
+      });
   });
 }
 
