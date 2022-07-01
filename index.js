@@ -486,6 +486,7 @@ function downloadReport(url) {
 
       }, (error, response, body) => {
         if (error) return reject(error);
+        console.debug(`${url}?session=${session.authToken}`);
         if (body) {
           console.debug("have the body");
           const found = body.match(/DataForLibreDailyLog\s*=\s*({.*})/);
