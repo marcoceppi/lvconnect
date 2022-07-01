@@ -400,43 +400,45 @@ function getChannels(url) {
 // );
 
 function getReportUrlWith1000PercentMoreRetries(url) {
-  var p = new Promise((resolve, reject) => {
-    return request({
-      method: "GET",
-      uri: url,
-      headers: {
-        "User-Agent": agent,
-        "Accept": "application/json"
-      },
-      json: true,
-      rejectUnauthorized: true
+  var p = () => {
+    return new Promise((resolve, reject) => {
+      return request({
+        method: "GET",
+        uri: url,
+        headers: {
+          "User-Agent": agent,
+          "Accept": "application/json"
+        },
+        json: true,
+        rejectUnauthorized: true
 
-    }, (error, response, body) => {
-      if (error) {
-        console.debug(error);
-        reject(error);
-      }
-
-      if (body.args) {
-        console.debug(body);
-        if (body.args.urls && body.args.urls[5]) {
-          console.debug("we got the body URL");
-          resolve(body.args.urls[5]);
-        } else {
-          console.debug("getReportUrl: No report URL provided.");
-          reject("getReportUrl: No report URL provided.");
+      }, (error, response, body) => {
+        if (error) {
+          console.debug(error);
+          reject(error);
         }
-      } else {// no sensible data has been returned
-        console.debug("getReportUrl: Unknown response, check connection parameters.");
-        reject("getReportUrl: Unknown response, check connection parameters.");
-      }
+
+        if (body.args) {
+          console.debug(body);
+          if (body.args.urls && body.args.urls[5]) {
+            console.debug("we got the body URL");
+            resolve(body.args.urls[5]);
+          } else {
+            console.debug("getReportUrl: No report URL provided.");
+            reject("getReportUrl: No report URL provided.");
+          }
+        } else {// no sensible data has been returned
+          console.debug("getReportUrl: Unknown response, check connection parameters.");
+          reject("getReportUrl: Unknown response, check connection parameters.");
+        }
+      });
     });
-  });
+  }
 
   return promiseRetry(
     { minTimeout: 500, retries: 5, factor: 1.5 },
     (retry, n) => {
-      return p.catch((err) => {
+      return p().catch((err) => {
         console.log('retrying promise');
         retry();
       });
